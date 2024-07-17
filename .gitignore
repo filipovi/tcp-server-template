@@ -1,0 +1,17 @@
+# Local variables #
+###################
+.env
+config/nginx/sites-enabled
+config/nginx/certs
+
+# Repositories #
+################
+dump/*
+projects/playground/bulma
+
+# Log #
+#######
+*.log
+tmp
+logs/nginx/*
+projects/*
