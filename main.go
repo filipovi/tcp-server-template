@@ -33,11 +33,12 @@ func (s *Server) acceptLoop() {
 	for {
 		conn, err := s.ln.Accept()
 		if err != nil {
-			fmt.Println("accept error:", err.Error())
+			fmt.Println("[error] acceptLoop", err.Error())
 			continue
 		}
 
-		fmt.Println("connection accepted for ", conn.RemoteAddr().String())
+		fmt.Printf("[client] %s connected", conn.RemoteAddr().String())
+
 		go s.readLoop(conn)
 	}
 }
@@ -50,18 +51,19 @@ func (s *Server) readLoop(conn net.Conn) {
 		if err != nil {
 			// Used to check if the client close the connection
 			if err == io.EOF {
-				fmt.Println("client closed", conn.RemoteAddr().String())
+				fmt.Printf("[client] %s close the connection\n", conn.RemoteAddr().String())
 				break
 			}
-			fmt.Println("read error:", err.Error())
+			fmt.Println("[error] readLoop", err.Error())
 			continue
 		}
 
-		msg := Message{
+		s.msgch <- Message{
 			from:    conn.RemoteAddr().String(),
 			payload: buf[:n],
 		}
-		fmt.Println("[message]", msg.from, string(msg.payload))
+
+		conn.Write([]byte("[response]: OK!"))
 	}
 }
 
@@ -77,12 +79,18 @@ func (s *Server) Start() error {
 	go s.acceptLoop()
 
 	<-s.quitch
+	close(s.msgch)
 
 	return nil
 }
 
 func main() {
 	s := NewServer("localhost:3000")
-	fmt.Println("[listen]", s.listenAddr)
+	fmt.Printf("[listen] %s\n", s.listenAddr)
+	go func() {
+		for msg := range s.msgch {
+			fmt.Printf("[message] from %s : %s\n", msg.from, string(msg.payload))
+		}
+	}()
 	log.Fatal(s.Start())
 }
